@@ -4,7 +4,12 @@ import psycopg2
 import os
 import time
 
-app = FastAPI(title="Todo API")
+app = FastAPI(title="Todo API", version="0.1.0")
+
+
+# =========================
+# Database Configuration
+# =========================
 
 DB_HOST = os.getenv("DB_HOST", "db")
 DB_NAME = os.getenv("POSTGRES_DB", "todo_db")
@@ -20,6 +25,10 @@ def get_connection():
         password=DB_PASSWORD
     )
 
+
+# =========================
+# Initialize Database
+# =========================
 
 def init_db():
     for _ in range(10):
@@ -54,6 +63,10 @@ def startup():
     init_db()
 
 
+# =========================
+# Pydantic Models
+# =========================
+
 class TodoCreate(BaseModel):
     text: str
 
@@ -62,13 +75,32 @@ class TodoUpdate(BaseModel):
     completed: bool
 
 
+class Todo(BaseModel):
+    id: int
+    text: str
+    completed: bool
+
+
+class DeleteResponse(BaseModel):
+    message: str
+
+
+# =========================
+# Health Check
+# =========================
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
 
-@app.get("/todos")
+# =========================
+# GET ALL TODOS
+# =========================
+
+@app.get("/todos", response_model=list[Todo])
 def get_todos():
+
     conn = get_connection()
     cursor = conn.cursor()
 
@@ -91,13 +123,22 @@ def get_todos():
     ]
 
 
-@app.post("/todos")
+# =========================
+# CREATE TODO
+# =========================
+
+@app.post("/todos", response_model=Todo)
 def create_todo(todo: TodoCreate):
+
     conn = get_connection()
     cursor = conn.cursor()
 
     cursor.execute(
-        "INSERT INTO todos (text) VALUES (%s) RETURNING id, text, completed",
+        """
+        INSERT INTO todos (text)
+        VALUES (%s)
+        RETURNING id, text, completed
+        """,
         (todo.text,)
     )
 
@@ -115,8 +156,13 @@ def create_todo(todo: TodoCreate):
     }
 
 
-@app.put("/todos/{todo_id}")
+# =========================
+# UPDATE TODO
+# =========================
+
+@app.put("/todos/{todo_id}", response_model=Todo)
 def update_todo(todo_id: int, todo: TodoUpdate):
+
     conn = get_connection()
     cursor = conn.cursor()
 
@@ -135,7 +181,11 @@ def update_todo(todo_id: int, todo: TodoUpdate):
     if not updated_todo:
         cursor.close()
         conn.close()
-        raise HTTPException(status_code=404, detail="Todo not found")
+
+        raise HTTPException(
+            status_code=404,
+            detail="Todo not found"
+        )
 
     conn.commit()
 
@@ -149,13 +199,22 @@ def update_todo(todo_id: int, todo: TodoUpdate):
     }
 
 
-@app.delete("/todos/{todo_id}")
+# =========================
+# DELETE TODO
+# =========================
+
+@app.delete("/todos/{todo_id}", response_model=DeleteResponse)
 def delete_todo(todo_id: int):
+
     conn = get_connection()
     cursor = conn.cursor()
 
     cursor.execute(
-        "DELETE FROM todos WHERE id = %s RETURNING id",
+        """
+        DELETE FROM todos
+        WHERE id = %s
+        RETURNING id
+        """,
         (todo_id,)
     )
 
@@ -164,11 +223,17 @@ def delete_todo(todo_id: int):
     if not deleted:
         cursor.close()
         conn.close()
-        raise HTTPException(status_code=404, detail="Todo not found")
+
+        raise HTTPException(
+            status_code=404,
+            detail="Todo not found"
+        )
 
     conn.commit()
 
     cursor.close()
     conn.close()
 
-    return {"message": "Todo deleted"}
+    return {
+        "message": "Todo deleted"
+    }
