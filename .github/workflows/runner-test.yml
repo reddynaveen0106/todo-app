@@ -1,0 +1,26 @@
+name: Runner Test
+
+on:
+  push:
+    branches:
+      - development
+
+jobs:
+  test-runner:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check runner
+        run: |
+          echo "GitHub Actions is running on my machine"
+          echo "Branch: $GITHUB_REF_NAME"
+          echo "Runner: $RUNNER_NAME"
+          hostname
+
+      - name: Check Docker
+        run: |
+          docker --version
+          docker compose version
