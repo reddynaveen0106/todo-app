@@ -160,7 +160,7 @@ function App() {
           </div>
         ) : todos.length === 0 ? (
           <div className="empty-state">
-            <h3>No tasks yet</h3>
+            <h3>Add the tasks</h3>
             <p>Add your first task above.</p>
           </div>
         ) : (
