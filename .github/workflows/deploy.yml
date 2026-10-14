@@ -8,6 +8,7 @@ on:
 
 jobs:
   deploy-development:
+    if: github.ref == 'refs/heads/development'
     runs-on: self-hosted
 
     environment: development
@@ -31,6 +32,7 @@ jobs:
           docker compose -p todo-app-development ps
 
   deploy-production:
+    if: github.ref == 'refs/heads/production'
     runs-on: self-hosted
 
     environment: production
