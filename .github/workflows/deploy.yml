@@ -1,0 +1,30 @@
+name: Todo App Deployment
+
+on:
+  push:
+    branches:
+      - development
+
+jobs:
+  deploy-development:
+    runs-on: self-hosted
+
+    environment: development
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy development
+        env:
+          POSTGRES_USER: ${{ vars.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ vars.POSTGRES_DB }}
+          FRONTEND_PORT: ${{ vars.FRONTEND_PORT }}
+          BACKEND_PORT: ${{ vars.BACKEND_PORT }}
+        run: |
+          docker compose -p todo-app-development up -d --build
+
+      - name: Show running containers
+        run: |
+          docker compose -p todo-app-development ps
