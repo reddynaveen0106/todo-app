@@ -129,7 +129,7 @@ function App() {
       <div className="todo-container">
 
         <header className="header">
-          <h1>TaskFlow</h1>
+          <h1>TaskFlow task flow </h1>
           <p>Organize your tasks and get things done.</p>
         </header>
 
