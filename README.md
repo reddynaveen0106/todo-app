@@ -1,304 +1,333 @@
-# Todo Application – Cloud-Native DevOps Deployment
+# Todo Application — Containerized Microservices Deployment
 
-A full-stack Todo application deployed using modern DevOps practices, containerization, CI/CD automation and AWS cloud infrastructure.
+A three-tier Todo application implemented with a practical DevOps delivery workflow: Docker multi-stage builds, Docker Compose, Trivy image scanning, Kubernetes on Minikube, and Helm release management.
 
-The project demonstrates an end-to-end deployment workflow, from source code management and automated testing to container orchestration using Amazon Elastic Kubernetes Service (EKS).
-
-## Project Overview
-
-This project consists of a frontend, backend API and PostgreSQL database. The application is containerized using Docker, supports local deployment through Docker Compose and is deployed to AWS using Kubernetes on Amazon EKS.
-
-GitHub Actions automates the CI/CD workflow, including application validation and automated Python testing.
+This README distinguishes the **local Minikube assessment deployment** from the repository's existing **self-hosted Docker Compose deployment workflow**. It does not claim that this assessment run was deployed to Amazon EKS.
 
 ## Architecture
 
 ```mermaid
 flowchart TD
-    A[Developer] --> B[GitHub Repository]
-    B --> C[GitHub Actions]
-    C --> D[Build and Validation]
-    D --> E[Pytest]
-    E --> F[Docker Image Build]
-    F --> G[Container Registry]
-    G --> H[Amazon EKS]
-    H --> I[Frontend]
-    H --> J[Backend API]
-    J --> K[PostgreSQL Database]
-    L[AWS VPC and Security] --- H
+    Dev[Developer] --> Git[GitHub repository]
+    Git --> Compose[Docker Compose workflow]
+    Compose --> FE[Frontend: React and Nginx]
+    FE --> API[Backend: FastAPI]
+    API --> DB[(PostgreSQL 16)]
+    DB --> Vol[(Persistent volume)]
+
+    Git --> Scan[Trivy image scans]
+    Scan --> Images[Local application images]
+    Images --> MK[Minikube cluster]
+    MK --> H[Helm release]
+    H --> KFE[Frontend Service: NodePort 30080]
+    H --> KAPI[Backend Service: ClusterIP 8088]
+    H --> KDB[PostgreSQL Service: ClusterIP 5432]
+    KDB --> PVC[(PVC: 2 GiB)]
+    Upgrade[Helm upgrade] --> H
+    Rollback[Helm rollback] --> H
 ```
 
-*Note: Adapt the container registry and database connectivity in this diagram to match your actual production configuration.*
+### Application tiers
 
-## Technology Stack
+| Tier | Technology | Responsibility | Kubernetes access |
+|---|---|---|---|
+| Frontend | React, Nginx | Serves the UI and makes API requests | NodePort 30080 |
+| Backend | Python, FastAPI, Uvicorn | Handles Todo API requests and database operations | ClusterIP 8088 |
+| Database | PostgreSQL 16 Alpine | Stores Todo records | ClusterIP 5432 |
 
-| Category | Technologies |
-|---|---|
-| Cloud Platform | AWS |
-| Networking | AWS VPC, Subnets, Security Groups |
-| Containerization | Docker, Docker Compose |
-| Container Orchestration | Kubernetes, Amazon EKS |
-| CI/CD | GitHub Actions |
-| Backend | Python |
-| Testing | Pytest |
-| Database | PostgreSQL 16 |
-| Version Control | Git, GitHub |
-| Operating System | Linux |
+The backend connects to PostgreSQL through the Kubernetes Service DNS name `db`. The PostgreSQL data directory is backed by a PersistentVolumeClaim (PVC) in Kubernetes and a named volume in Docker Compose.
 
-## Repository Structure
+## Technology stack
+
+- **Application:** React, FastAPI, Python, PostgreSQL 16
+- **Containers:** Docker, multi-stage Dockerfiles, Docker Compose
+- **Security scanning:** Trivy
+- **Orchestration:** Kubernetes, Minikube
+- **Release management:** Helm
+- **CI/CD deployment workflow:** GitHub Actions with self-hosted runners
+- **OS used for the practical deployment:** Ubuntu Linux
+
+## Repository structure
 
 ```text
 todo-app/
-│
 ├── .github/
 │   └── workflows/
-│       └── CI/CD workflow files
-│
+│       └── deploy.yml
 ├── backend/
-│   └── Backend application and tests
-│
+│   ├── Dockerfile
+│   ├── main.py
+│   └── requirements.txt
 ├── frontend/
-│   └── Frontend application
-│
+│   ├── Dockerfile
+│   ├── nginx.conf
+│   └── src/
+├── k8s/
+│   └── todo-app.yaml
+├── todo-app/                 # Helm chart
+│   ├── Chart.yaml
+│   ├── values.yaml
+│   └── templates/
+│       └── todo.yaml
+├── docs/
+│   └── todo_app_containerized_microservices_deployment_report.pdf
 ├── .env.example
 ├── .gitignore
 ├── docker-compose.yml
 └── README.md
 ```
 
-Kubernetes deployment manifests are maintained separately if applicable to your repository. Add their actual directory and filenames here.
+## 1. Prerequisites
 
-## Application Architecture
+Install or have available:
 
-### 1. Frontend
-
-- Provides the user interface for managing Todo items.
-- Communicates with the backend API.
-- Containerized using Docker.
-- Served through the frontend container.
-
-### 2. Backend
-
-- Handles application business logic and API requests.
-- Communicates with PostgreSQL.
-- Uses environment variables for database configuration.
-- Includes automated Python tests using Pytest.
-
-### 3. Database
-
-- PostgreSQL 16 Alpine image.
-- Persistent storage using Docker volumes.
-- Database health checks using `pg_isready`.
-- Backend startup depends on database health.
-
-## Docker Compose Deployment
-
-Docker Compose manages the application services:
-
-- Frontend
-- Backend
-- PostgreSQL
-
-### Prerequisites
-
-- Docker
-- Docker Compose plugin
+- Docker Engine and Docker Compose plugin
 - Git
-
-### Setup
+- kubectl
+- Minikube
+- Helm
+- Trivy (for image scanning)
 
 Clone the repository:
 
 ```bash
 git clone https://github.com/reddynaveen0106/todo-app.git
-
 cd todo-app
 ```
 
-Create the environment file:
+## 2. Configure environment variables
+
+Create a local environment file:
 
 ```bash
 cp .env.example .env
 ```
 
-Update the environment variables:
+Edit `.env` and set a strong, unique database password. The environment file is ignored by Git; **never commit credentials**.
 
-```env
-POSTGRES_USER=todo_user
-POSTGRES_PASSWORD=change_this_password
-POSTGRES_DB=tododb
+The Compose configuration reads:
 
-FRONTEND_PORT=8081
-BACKEND_PORT=8088
-```
+- `POSTGRES_USER`
+- `POSTGRES_PASSWORD`
+- `POSTGRES_DB`
+- `FRONTEND_PORT`
+- `BACKEND_PORT`
 
-Use your actual `.env.example` variables and configure secure credentials.
+## 3. Build and run with Docker Compose
 
-Start the application:
-
-```bash
-docker compose up -d --build
-```
-
-Check running containers:
+Build the frontend and backend images and start the three services:
 
 ```bash
+docker compose build
+docker compose up -d
 docker compose ps
 ```
 
-View application logs:
+The Compose project contains:
+
+- `frontend` — Nginx serves the built frontend on container port 80.
+- `backend` — FastAPI listens on container port 8088.
+- `db` — PostgreSQL 16 Alpine with a named data volume and a `pg_isready` health check.
+
+Check the backend endpoints (with the example host port mapping):
 
 ```bash
-docker compose logs -f
+curl http://localhost:8088/health
+curl http://localhost:8088/todos
 ```
 
-Stop the application:
+The health endpoint returns:
+
+```json
+{"status":"ok"}
+```
+
+View logs and stop the stack:
 
 ```bash
+docker compose logs --tail=100
 docker compose down
 ```
 
-## Automated Testing – Pytest
+The named PostgreSQL volume is retained by `docker compose down`. Avoid `docker compose down -v` unless intentionally deleting the database volume.
 
-Pytest is used to execute automated backend tests and validate application functionality.
+## 4. Trivy image security scanning
 
-Run the tests from the backend directory:
-
-```bash
-cd backend
-
-pytest
-```
-
-For detailed test output:
+Scan each image:
 
 ```bash
-pytest -v
+trivy image todo-app-backend:latest
+trivy image todo-app-frontend:latest
+trivy image postgres:16-alpine
 ```
 
-Test execution is integrated into the CI workflow to help identify application issues before deployment.
+Save scan reports:
 
-## CI/CD – GitHub Actions
+```bash
+trivy image --format table --output backend-scan.txt todo-app-backend:latest
+trivy image --format table --output frontend-scan.txt todo-app-frontend:latest
+trivy image --format table --output postgres-scan.txt postgres:16-alpine
+```
 
-GitHub Actions automates the application delivery workflow.
+### Findings recorded during the practical run
 
-### CI/CD workflow
-
-1. Developer pushes code to GitHub.
-2. GitHub Actions triggers the configured workflow.
-3. Application dependencies are installed.
-4. Automated tests are executed using Pytest.
-5. Docker images are built.
-6. Container images are prepared for deployment.
-7. Deployment workflows publish and deploy the application to the target environment.
-
-*The exact execution order and deployment triggers depend on the configured workflow files.*
-
-## AWS Infrastructure and Deployment
-
-The application is deployed using AWS cloud infrastructure.
-
-### AWS Services
-
-| AWS Service | Purpose |
+| Scan target | Findings |
 |---|---|
-| VPC | Network isolation |
-| Subnets | Network segmentation |
-| Security Groups | Control inbound and outbound traffic |
-| EKS | Managed Kubernetes control plane |
-| EC2 Worker Nodes | Run Kubernetes workloads |
-| IAM | Identity and access management |
-| Container Registry | Store application images, if configured |
+| Backend image | 254 total: 8 UNKNOWN, 71 LOW, 120 MEDIUM, 55 HIGH, 0 CRITICAL |
+| Frontend image | 73 total: 44 LOW, 11 MEDIUM, 17 HIGH, 1 CRITICAL |
+| PostgreSQL Alpine OS packages | 29 total: 7 MEDIUM, 22 HIGH, 0 CRITICAL |
+| PostgreSQL `gosu` binary | 62 total: 2 UNKNOWN, 3 LOW, 31 MEDIUM, 25 HIGH, 1 CRITICAL |
 
-### AWS VPC and Security Architecture
+The PostgreSQL OS and `gosu` binary results are separate Trivy targets. Findings are recorded for follow-up; they have not been represented as remediated. Before a production release, review the critical/high findings, update affected packages or base images, rebuild, and rescan.
 
-The AWS networking architecture provides controlled connectivity between application components.
+## 5. Kubernetes deployment with Minikube
 
-Key considerations:
-
-- Network segmentation using public and private subnets.
-- Restrict inbound traffic using security group rules.
-- Avoid exposing database services directly to the public internet.
-- Apply least-privilege IAM permissions.
-- Secure application configuration and database credentials.
-- Restrict access to Kubernetes workloads and cluster resources.
-
-### Amazon EKS Deployment
-
-Kubernetes is used to orchestrate the application containers.
-
-Deployment activities include:
-
-- Kubernetes Deployment configurations.
-- Kubernetes Services.
-- Container image deployment.
-- Application replica management.
-- Pod health and status monitoring.
-- Application rollout and troubleshooting.
-
-Useful Kubernetes commands:
+Start and verify Minikube:
 
 ```bash
-kubectl get nodes
-
-kubectl get pods -A
-
-kubectl get deployments
-
-kubectl get services
-
-kubectl describe pods
-
-kubectl logs <pod-name>
+minikube start
+minikube status
+kubectl get nodes -o wide
 ```
 
-## DevOps Best Practices
+Load locally built images into Minikube:
 
-The project incorporates the following engineering practices:
+```bash
+minikube image load todo-app-backend:latest
+minikube image load todo-app-frontend:latest
+minikube image load postgres:16-alpine
+```
 
-- Source code version control using Git.
-- Automated CI/CD workflows.
-- Automated backend testing.
-- Containerized application deployment.
-- Environment-based application configuration.
-- Persistent database storage.
-- Database health checks.
-- Kubernetes workload orchestration.
-- Network segmentation and security controls.
-- Least-privilege access principles.
-- Deployment validation and troubleshooting.
+### Create the database Secret
 
-## Key Learning Outcomes
+The manifest and Helm chart reference a Secret named `todo-db-secret`. Create it from the local `.env` file without printing its values:
 
-Through this project, I gained practical experience in:
+```bash
+set -a
+source .env
+set +a
 
-- Building and deploying a full-stack application.
-- Implementing CI/CD automation with GitHub Actions.
-- Containerizing applications using Docker.
-- Managing multi-container applications using Docker Compose.
-- Running automated backend tests using Pytest.
-- Deploying containerized applications to Amazon EKS.
-- Designing AWS networking and security architecture.
-- Troubleshooting container and Kubernetes deployments.
-- Understanding end-to-end DevOps delivery workflows.
+kubectl create secret generic todo-db-secret \
+  --from-literal=POSTGRES_USER="$POSTGRES_USER" \
+  --from-literal=POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
+  --from-literal=POSTGRES_DB="$POSTGRES_DB" \
+  --dry-run=client -o yaml | kubectl apply -f -
+```
 
-## Future Improvements
+### Apply raw Kubernetes manifests (alternative to Helm)
 
-- Infrastructure provisioning using Terraform.
-- Image vulnerability scanning.
-- Kubernetes Helm deployments.
-- Prometheus and Grafana monitoring.
-- Centralized logging using Loki.
-- GitOps deployment using Argo CD.
-- Deployment automation using Azure DevOps.
+The standalone manifest is available at `k8s/todo-app.yaml`:
+
+```bash
+kubectl apply -f k8s/todo-app.yaml
+kubectl get deployments
+kubectl get pods -o wide
+kubectl get services
+kubectl get pvc
+```
+
+It defines three Deployments and Services, a ConfigMap, a 2 GiB PVC, health probes and CPU/memory requests and limits.
+
+> Use either the raw manifest workflow or the Helm release workflow as the owner of these resources. Do not repeatedly apply the standalone manifest over Helm-managed resources; that can create ownership conflicts or configuration drift.
+
+## 6. Helm chart deployment
+
+The chart is located in `todo-app/`.
+
+Validate and render the chart:
+
+```bash
+cd todo-app
+helm lint .
+helm template todo-app .
+```
+
+Install the release:
+
+```bash
+helm install todo-app .
+helm list
+helm status todo-app
+```
+
+Upgrade the application to two frontend/backend replicas:
+
+```bash
+helm upgrade todo-app . --set replicaCount=2
+helm history todo-app
+kubectl get deployments
+```
+
+Roll back to revision 2:
+
+```bash
+helm rollback todo-app 2
+helm history todo-app
+kubectl rollout status deployment/backend
+kubectl rollout status deployment/frontend
+kubectl get deployments
+kubectl get pods
+kubectl get pvc
+```
+
+Helm preserves revision history and creates a new revision for each rollback; a rollback does not delete earlier revisions.
+
+## 7. Access and test the Kubernetes services
+
+Get the frontend URL:
+
+```bash
+minikube service frontend --url
+```
+
+The practical run exposed the frontend through NodePort 30080.
+
+Forward the backend Service to a free local port. If port 8088 is already occupied by Docker Compose, use 8090:
+
+```bash
+kubectl port-forward svc/backend 8090:8088
+```
+
+In a second terminal:
+
+```bash
+curl http://localhost:8090/health
+curl http://localhost:8090/todos
+```
+
+Expected health response:
+
+```json
+{"status":"ok"}
+```
+
+The backend logs should show database initialization and successful `GET /health` responses.
+
+## 8. Existing GitHub Actions deployment workflow
+
+The repository includes `.github/workflows/deploy.yml`. It is configured to run on pushes to the `development` and `production` branches and uses a self-hosted runner to execute Docker Compose deployments with separate Compose project names and GitHub Environment variables/secrets.
+
+This workflow is a Docker Compose deployment workflow. The Minikube/Helm assessment steps documented above were performed separately in the local Ubuntu environment; they should not be confused with an automated EKS deployment.
+
+## 9. Operational and security considerations
+
+- Keep `.env` and secret values out of version control.
+- Use strong, unique credentials and rotate credentials used for local testing.
+- Pin production images to controlled versions or immutable digests.
+- Remediate critical/high Trivy findings and rescan before production deployment.
+- Back up PostgreSQL and periodically test restore procedures.
+- Review resource requests/limits against measured usage.
+- For a production Kubernetes environment, add appropriate ingress/TLS, access controls, monitoring, centralized logging, and backup/restore automation.
+
+## Assessment report
+
+The practical assessment report, architecture flowchart, scan summaries and terminal evidence are provided in:
+
+`docs/todo_app_containerized_microservices_deployment_report.pdf`
 
 ## Author
 
-**Naveen Reddy**
-
-Cloud & DevOps Engineering Enthusiast
-
+**Naveen Reddy**  
 GitHub: https://github.com/reddynaveen0106
 
----
-
-**Project Repository:** https://github.com/reddynaveen0106/todo-app
+Repository: https://github.com/reddynaveen0106/todo-app

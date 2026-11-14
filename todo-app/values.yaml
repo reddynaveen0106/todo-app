@@ -1,0 +1,42 @@
+replicaCount: 1
+
+images:
+  frontend: todo-app-frontend:latest
+  backend: todo-app-backend:latest
+  database: postgres:16-alpine
+
+database:
+  storage: 2Gi
+
+service:
+  frontend:
+    type: NodePort
+    port: 80
+    nodePort: 30080
+  backend:
+    port: 8088
+  database:
+    port: 5432
+
+resources:
+  frontend:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 300m
+      memory: 256Mi
+  backend:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  database:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
