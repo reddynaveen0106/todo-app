@@ -363,6 +363,22 @@ The screenshots below record the practical deployment, Helm release management a
 
 ![Additional Trivy vulnerability details](docs/screenshots/09-additional-trivy-scan-details.jpg)
 
+### Source configuration snapshots
+
+These visual snapshots highlight the actual repository configuration files used in the practical deployment. The complete, editable YAML and Dockerfiles remain available in their source directories.
+
+**10. Docker Compose and multi-stage Dockerfiles**
+
+![Docker Compose and Dockerfiles](docs/screenshots/10-docker-compose-and-dockerfiles.svg)
+
+**11. Kubernetes manifest — Deployments, Services, Secret references, PVC, probes and resource limits**
+
+![Kubernetes manifest](docs/screenshots/11-kubernetes-manifest.svg)
+
+**12. Helm chart configuration and GitHub Actions deployment workflow**
+
+![Helm chart and GitHub Actions workflow](docs/screenshots/12-helm-chart-and-github-actions.svg)
+
 ## Assessment report
 
 The practical assessment report, architecture flowchart, scan summaries and terminal evidence are provided in:
