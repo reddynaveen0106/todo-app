@@ -319,6 +319,50 @@ This workflow is a Docker Compose deployment workflow. The Minikube/Helm assessm
 - Review resource requests/limits against measured usage.
 - For a production Kubernetes environment, add appropriate ingress/TLS, access controls, monitoring, centralized logging, and backup/restore automation.
 
+## Deployment evidence screenshots
+
+The screenshots below record the practical deployment, Helm release management and Trivy image scans. The image files are stored in `docs/screenshots/`.
+
+### Kubernetes and Helm verification
+
+**1. Helm rollback and Kubernetes workload state**
+
+![Helm rollback and Kubernetes workload state](docs/screenshots/01-helm-rollback-and-kubernetes-state.jpg)
+
+**2. Rollback history and deployment rollout**
+
+![Rollback history and deployment rollout](docs/screenshots/02-rollback-history-and-rollout.jpg)
+
+**3. Backend health checks and frontend service access**
+
+![Backend health checks and frontend service access](docs/screenshots/03-backend-health-and-service-access.jpg)
+
+**4. Helm rollback terminal history**
+
+![Helm rollback terminal history](docs/screenshots/04-helm-rollback-terminal-history.jpg)
+
+### Trivy security scan evidence
+
+**5. PostgreSQL image scan**
+
+![PostgreSQL Trivy scan](docs/screenshots/05-postgresql-trivy-scan.jpg)
+
+**6. Frontend image scan**
+
+![Frontend Trivy scan](docs/screenshots/06-frontend-trivy-scan.jpg)
+
+**7. Backend image scan**
+
+![Backend Trivy scan](docs/screenshots/07-backend-trivy-scan.jpg)
+
+**8. Docker Compose build and startup**
+
+![Docker Compose build and startup](docs/screenshots/08-docker-compose-build-and-start.jpg)
+
+**9. Additional Trivy vulnerability details**
+
+![Additional Trivy vulnerability details](docs/screenshots/09-additional-trivy-scan-details.jpg)
+
 ## Assessment report
 
 The practical assessment report, architecture flowchart, scan summaries and terminal evidence are provided in:
