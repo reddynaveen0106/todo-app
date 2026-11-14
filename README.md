@@ -1,4 +1,4 @@
-# Todo Application — Containerized Microservices Deployment
+# Todo Application - CONTAINERIZED | HELM | CI/CD | KUBERNETES | TRIVY 
 
 A three-tier Todo application implemented with a practical DevOps delivery workflow: Docker multi-stage builds, Docker Compose, Trivy image scanning, Kubernetes on Minikube, and Helm release management.
 
